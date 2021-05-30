@@ -5,6 +5,7 @@ import (
 
 	"github.com/clshu/go-mgm/utils"
 	"github.com/kamva/mgm/v3"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // User contains user info
@@ -18,9 +19,19 @@ type User struct {
 	TempPassword     utils.TempPassword `json:"tempPassword" bson:"tempPassword"`
 }
 
-// func NewBook(u User) *User {
-// 	return &User{Email: u.Email, FirstName: u.FirstName, LastName: u.LastName, Password: u.Password}}
-// }
+// UserViewer is a return type with partial user info
+type UserViewer struct {
+	ID        primitive.ObjectID `json:"id"`
+	Email     string             `json:"email"`
+	FirstName string             `json:"firstName"`
+	LastName  string             `json:"lastName"`
+}
+
+// UserAuth is an auth payload with partial user info and token
+type UserAuth struct {
+	User  UserViewer `json:"user"`
+	Token string     `json:"token"`
+}
 
 // Creating : an preop to create hashed password and lower case email
 func (u *User) Creating() error {

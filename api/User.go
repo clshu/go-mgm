@@ -23,25 +23,17 @@ func CreateUser(res http.ResponseWriter, req *http.Request) {
 	// defer ctx.Done()
 	tempPassword, err := utils.CreateTempPassword()
 	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(`{ "message": "` + err.Error() + `"}`))
+		ReturnError(http.StatusInternalServerError, err, "", &res)
 		return
 	}
-
 	user.TempPassword = tempPassword
 
 	merr := mgm.Coll(user).Create(user)
 	if merr != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(`{ "message": "` + err.Error() + `"}`))
+		ReturnError(http.StatusInternalServerError, merr, "", &res)
 	} else {
-		ret := &struct {
-			ID    primitive.ObjectID `json:"id"`
-			Email string             `json:"email"`
-		}{ID: user.ID, Email: user.Email}
-		// fmt.Printf("%v %T\n", user.ID, user.ID)
-		// fmt.Printf("%v %T\n", user.Email, user.Email)
-		// fmt.Printf("%v %T\n", ret, ret)
+		viwer := models.UserViewer{ID: user.ID, Email: user.Email, FirstName: user.FirstName, LastName: user.LastName}
+		ret := &models.UserAuth{User: viwer, Token: "token"}
 		json.NewEncoder(res).Encode(ret)
 	}
 
@@ -59,34 +51,27 @@ func LogIn(res http.ResponseWriter, req *http.Request) {
 
 	result := mgm.Coll(user).FindOne(ctx, bson.M{"email": user.Email})
 	if result.Err() != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(`{ "message": "` + result.Err().Error() + `"}`))
+		ReturnError(http.StatusNotFound, result.Err(), "", &res)
 		return
 	}
 	ret := &models.User{}
 	err := result.Decode(ret)
 	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(`{ "message": "` + err.Error() + `"}`))
+		ReturnError(http.StatusInternalServerError, err, "", &res)
 		return
 	}
 	if ret.Email != strings.ToLower(user.Email) {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(`{ "message":  Unable To Login"}`))
+		ReturnError(http.StatusUnauthorized, nil, "Unable to Login", &res)
 		return
 	}
 	perr := utils.ComparePassword(ret.Password, user.Password)
 	if perr != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(`{ "message": "` + err.Error() + `"}`))
+		ReturnError(http.StatusUnauthorized, nil, "Unable to Login", &res)
 	} else {
 		pret := &struct {
 			ID    primitive.ObjectID `json:"id"`
 			Email string             `json:"email"`
 		}{ID: ret.ID, Email: ret.Email}
-		// fmt.Printf("%v %T\n", user.ID, user.ID)
-		// fmt.Printf("%v %T\n", user.Email, user.Email)
-		// fmt.Printf("%v %T\n", ret, ret)
 		json.NewEncoder(res).Encode(pret)
 	}
 }
