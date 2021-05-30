@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/form3tech-oss/jwt-go"
@@ -41,7 +42,7 @@ func CreateToken(id string) (string, error) {
 	mapClaims := GoClaims{
 		Az: az,
 		SClaims: jwt.StandardClaims{
-			Id:        "0",
+			// Id:        "0",
 			Subject:   id,
 			IssuedAt:  now,
 			ExpiresAt: now + oneDay,
@@ -96,13 +97,19 @@ func ParseToken(tokenString string, claims *GoClaims) (int, error) {
 }
 
 func GetTokenClaims(req *http.Request) (*GoClaims, int, error) {
-	tokenString := req.Header.Get("Bearer")
-	if tokenString == "" {
+	str := req.Header.Get("Authorization")
+	if str == "" {
 		return nil, http.StatusUnauthorized, fmt.Errorf("No Token in Header")
+	}
+
+	bearer := strings.Split(str, " ")
+
+	if strings.ToLower(bearer[0]) != "bearer" {
+		return nil, http.StatusUnauthorized, fmt.Errorf("No Bearer token")
 	}
 	claims := GoClaims{}
 
-	status, err := ParseToken(tokenString, &claims)
+	status, err := ParseToken(bearer[1], &claims)
 
 	if err != nil {
 		return nil, status, err
