@@ -26,6 +26,11 @@ type GoClaims struct {
 	SClaims jwt.StandardClaims `json:"sclaims"`
 }
 
+type TokenId struct {
+	ID string `json:"id"`
+	Az Authz  `json:"az"`
+}
+
 // Valid is to implement Claim interface
 func (c *GoClaims) Valid() error {
 	return nil
@@ -96,7 +101,7 @@ func ParseToken(tokenString string, claims *GoClaims) (int, error) {
 	return http.StatusOK, nil
 }
 
-func GetTokenClaims(req *http.Request) (*GoClaims, int, error) {
+func GetTokenId(req *http.Request) (*TokenId, int, error) {
 	str := req.Header.Get("Authorization")
 	if str == "" {
 		return nil, http.StatusUnauthorized, fmt.Errorf("No Token in Header")
@@ -114,16 +119,7 @@ func GetTokenClaims(req *http.Request) (*GoClaims, int, error) {
 	if err != nil {
 		return nil, status, err
 	}
-
-	return &claims, http.StatusOK, nil
-
-}
-
-func GetTokenId(req *http.Request) (string, int, error) {
-	claims, status, err := GetTokenClaims(req)
-	if err != nil {
-		return "", status, err
-	}
-	return claims.SClaims.Subject, http.StatusOK, nil
+	tokenID := TokenId{ID: claims.SClaims.Subject, Az: claims.Az}
+	return &tokenID, http.StatusOK, nil
 
 }
